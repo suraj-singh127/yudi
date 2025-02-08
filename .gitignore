@@ -4,3 +4,4 @@
 #ignore other common files
 .log
 .temp
+__pycache__
