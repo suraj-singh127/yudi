@@ -2,6 +2,8 @@ import asyncio
 import requests
 import time
 
+# Submitting a url for scanning
+
 async def submit_url_to_urlscan(api_key, url_to_scan, visibility="public"):
     """
     Submits a URL to URLScan.io for scanning.
@@ -79,18 +81,8 @@ async def fetch_urlscan_results(api_key, scan_id, wait_time=15):
         result = response.json()
         
         # Extract relevant details
-        submitted_url = result.get("task", {}).get("url", "No URL found")
-        report_url = result.get("task", {}).get("reportURL", "No report URL found")
-        screenshot_url = result.get("task", {}).get("screenshotURL", "No screenshot available")
-        verdicts = result.get("verdicts", {}).get("overall", {})
-
-        return {
-            "submitted_url": submitted_url,
-            "report_url": report_url,
-            "screenshot_url": screenshot_url,
-            "verdicts": verdicts
-        }
-
+        return result
+    
     except requests.exceptions.HTTPError as http_err:
         return {"error": f"HTTP error occurred: {http_err}"}
     
@@ -113,4 +105,4 @@ async def urlscan_submission(api_key,ioc):
 
     # Step 2: Fetch results after scan completion
     scan_results = await fetch_urlscan_results(api_key, scan_id)
-    print(scan_results)
+    return scan_results

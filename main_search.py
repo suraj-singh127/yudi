@@ -9,103 +9,89 @@ from virustotal_query import check_virustotal
 from abuse_ipdb_check import check_abuseipdb
 from classification import classify_input
 from virustotal_query import search_virus_total
+import aiohttp
+import aiofiles
 
 dotenv.load_dotenv()
+
+# 🔹 Function to Print Stylish Banner
+def print_banner():
+    banner = """
+    ██    ██ ██    ██ ██████     ██   
+    ██    ██ ██    ██ ██   ██    ██ 
+    ██    ██ ██    ██ ██    █    ██   
+       ██    ██    ██ ██    █    ██       
+       ██      ████    █████     ██  
+    --------------------------------------
+      🔍 Threat Intelligence Lookup 🔍
+    """
+    print(banner)
 
 async def fetch_api_result(api_function, api_key, ioc):
     """
     Calls an API function asynchronously, handles errors, and ensures a valid response.
-    
-    Parameters:
-        api_function (function): The API query function to call.
-        api_key (str): The API key to pass to the function.
-        kwargs: Additional arguments for the API function.
-
-    Returns:
-        dict or str: API response JSON if successful, else error message.
     """
     try:
-        response = await api_function(api_key=api_key, ioc = ioc)
+        print(f"[INFO] Calling API: {api_function.__name__} for {ioc}...")
+        response = await api_function(api_key=api_key, ioc=ioc)
 
         if not response:
+            print(f"[ERROR] No response received from {api_function.__name__}.")
             return {"error": "No response received"}
 
         if isinstance(response, dict) and "error" in response:
+            print(f"[ERROR] API error from {api_function.__name__}: {response['error']}")
             return {"error": f"API error: {response['error']}"}
 
+        print(f"[SUCCESS] Response received from {api_function.__name__}!")
         return response
 
     except asyncio.TimeoutError:
+        print(f"[ERROR] Request to {api_function.__name__} timed out!")
         return {"error": "Request timed out"}
-    
+
     except Exception as e:
+        print(f"[ERROR] Unexpected error in {api_function.__name__}: {str(e)}")
         return {"error": f"Unexpected error: {str(e)}"}
 
 async def make_api_calls(api_keys, ioc, classification):
-    print(api_keys)
     """
     Calls appropriate API checks based on the type of IOC (IP, HASH, URL).
-    Saves responses to a JSON file and handles errors gracefully.
-    
-    Parameters:
-        api_keys (dict): Dictionary containing API keys.
-        ioc (str): The Indicator of Compromise (IP, URL, or HASH).
-        classification (str): The type of IOC ("IP", "HASH", "URL").
-    
-    Returns:
-        dict: JSON results from the relevant API queries.
     """
     api_requests = []
 
-    print("Inside API requests function")
+    print("\n[INFO] Collecting endpoints for API calls...")
 
     if classification == "IP":
-        api_requests.append(fetch_api_result(check_abuseipdb, api_keys["abuseipdb"],ioc))
-        api_requests.append(fetch_api_result(check_virustotal, api_keys["virustotal"],ioc))
-        print("Fetching results from AbuseIPDB and VirusTotal for IP...")
+        api_requests.append({"function": check_abuseipdb, "api_key": api_keys["abuseipdb"], "ioc": ioc})
+        api_requests.append({"function": check_virustotal, "api_key": api_keys["virustotal"], "ioc": ioc})
+        print("[INFO] Fetching results from AbuseIPDB and VirusTotal for IP...")
 
     elif classification == "HASH":
-        api_requests.append(fetch_api_result(check_virustotal, api_keys["virustotal"],ioc))
-        print("Fetching results from VirusTotal for HASH...")
+        api_requests.append({"function": search_virus_total, "api_key": api_keys["virustotal"], "ioc": ioc})
+        print("[INFO] Fetching results from VirusTotal for HASH...")
 
     elif classification == "URL":
-        api_requests.append(fetch_api_result(search_virus_total, api_keys["virustotal"],ioc))
-        api_requests.append(fetch_api_result(check_urlhaus, api_keys["abusech"],ioc))
-        api_requests.append(fetch_api_result(urlscan_submission, api_keys["urlscan"], ioc))
-        
-        print("Fetching results from VirusTotal, URLHaus, and URLScan.io for URL...")
+        api_requests.append({"function": search_virus_total, "api_key": api_keys["virustotal"], "ioc": ioc})
+        api_requests.append({"function": check_urlhaus, "api_key": api_keys["abusech"], "ioc": ioc})
+        api_requests.append({"function": urlscan_submission, "api_key": api_keys["urlscan"], "ioc": ioc})
+        print("[INFO] Fetching results from VirusTotal, URLHaus, and URLScan.io for URL...")
 
-    # Run all API calls asynchronously and collect results
-    results = await asyncio.gather(*api_requests)
+    print(f"[SUCCESS] {len(api_requests)} API calls prepared.")
+    return api_requests
 
-    # Save results to a JSON file
-    save_results_to_file(results)
-
-    return results
-
-def save_results_to_file(data):
+async def save_json_to_file(data, filename):
     """
-    Saves the JSON results to a file with a timestamp.
-
-    Parameters:
-        data (dict): The JSON response from the security checks.
+    Saves JSON data to a file asynchronously.
     """
-    # Create results directory if not exists
-    results_dir = "results"
-    os.makedirs(results_dir, exist_ok=True)
+    print(f"[INFO] Saving data to {filename}...")
+    async with aiofiles.open(filename, "a") as file:
+        await file.write(json.dumps(data, indent=4) + ",\n")
+    print(f"[SUCCESS] File saved: {filename}")
 
-    # Generate timestamped filename
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{results_dir}/security_results_{timestamp}.json"
-
-    # Save the JSON data to file
-    with open(filename,"+a") as f:
-        json.dumps(data, indent=4)
-
-    print(f"Results saved to {filename}")
-
-# Example usage
 async def main():
+    print_banner()  # 🔹 Show the banner at the start
+
     api_keys = {
         "virustotal": os.getenv("VT_KEY"),
         "abuseipdb": os.getenv("IPDB_KEY"),
@@ -113,15 +99,30 @@ async def main():
         "urlscan": os.getenv("URLSCAN_KEY")
     }
 
-    ioc = input("Enter an IOC (Hash, URL, Domain, or IP): ")
+    print("\n🔹 Welcome to the Threat Intelligence Lookup Tool 🔍")
+    
+    ioc = input("\n[INPUT] Enter an IOC (Hash, URL, Domain, or IP): ")
     
     classification = classify_input(ioc)
-    print(f"Input matched as - {classification}")
+    print(f"\n[INFO] Input classified as - {classification}")
 
-    classification =  classify_input(ioc)
+    api_calls = await make_api_calls(api_keys, ioc, classification)
 
-    result = await make_api_calls(api_keys, ioc, classification)
-    save_results_to_file(result)
+    if not api_calls:
+        print("[ERROR] No valid API calls generated. Exiting...")
+        return
+
+    print("\n[INFO] Initiating API calls...")
+    tasks = [fetch_api_result(api["function"], api["api_key"], api["ioc"]) for api in api_calls]
+    results = await asyncio.gather(*tasks)
+
+    filename = f"{ioc}_report.json"
+    
+    for result in results:
+        await save_json_to_file(result, filename)
+
+    print(f"\n[COMPLETE] All responses saved to {filename}.")
+    print("\n🚀 Execution completed. Check the report for details.")
 
 if __name__ == "__main__":
     asyncio.run(main())

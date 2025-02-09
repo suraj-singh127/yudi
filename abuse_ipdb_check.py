@@ -13,8 +13,6 @@ async def check_abuseipdb(api_key,ioc):
     headers = {"Key": api_key, "Accept": "application/json"}
     params = {"ipAddress": ioc, "maxAgeInDays": 90}
 
-    print(f"Fetching data from \n Endpoint : {api_endpoint} \n Headers - {headers} \n Params - {params}")
-
     async with aiohttp.ClientSession() as session:
         async with session.get(api_endpoint, headers=headers, params=params) as response:
             result = await response.json()

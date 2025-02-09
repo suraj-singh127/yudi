@@ -1,6 +1,7 @@
 import aiohttp
 import pdb
 
+# Submitting a url for analysis
 async def check_virustotal(api_key,ioc):
     """
     Queries VirusTotal API to check a URL for threats.
@@ -10,9 +11,6 @@ async def check_virustotal(api_key,ioc):
                'content-type': 'application/x-www-form-urlencoded'
                }
     data = {"url": ioc}
-
-    
-
     async with aiohttp.ClientSession() as session:
         async with session.post(api_endpoint, headers=headers, data=data) as response:
             result = await response.json()
@@ -29,10 +27,9 @@ async def search_virus_total(api_key, ioc):
     "x-apikey": api_key,
     "content-type": "application/x-www-form-urlencoded"
     }
-    print(f"Fetching data from \n Endpoint : {api_endpoint} \n Headers - {headers} for {ioc}.........")
 
     async with aiohttp.ClientSession() as session:
         async with session.get(api_endpoint, headers=headers) as response:
             result = await response.json()
             pdb.set_trace()
-            return result 
+            return result
