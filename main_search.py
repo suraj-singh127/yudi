@@ -64,7 +64,7 @@ async def make_api_calls(api_keys, ioc, classification):
 
     if classification == "IP":
         api_requests.append({"function": check_abuseipdb, "api_key": api_keys["abuseipdb"], "ioc": ioc})
-        api_requests.append({"function": check_virustotal, "api_key": api_keys["virustotal"], "ioc": ioc})
+        api_requests.append({"function": search_virus_total, "api_key": api_keys["virustotal"], "ioc": ioc})
         print("[INFO] Fetching results from AbuseIPDB and VirusTotal for IP...")
 
     elif classification == "HASH":
