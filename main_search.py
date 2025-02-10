@@ -11,6 +11,7 @@ from classification import classify_input
 from virustotal_query import search_virus_total
 import aiohttp
 import aiofiles
+from dns_records import fetch_dns_records
 
 dotenv.load_dotenv()
 
@@ -73,7 +74,6 @@ async def make_api_calls(api_keys, ioc, classification):
 
     elif classification == "URL":
         api_requests.append({"function": search_virus_total, "api_key": api_keys["virustotal"], "ioc": ioc})
-        api_requests.append({"function": check_urlhaus, "api_key": api_keys["abusech"], "ioc": ioc})
         api_requests.append({"function": urlscan_submission, "api_key": api_keys["urlscan"], "ioc": ioc})
         print("[INFO] Fetching results from VirusTotal, URLHaus, and URLScan.io for URL...")
 
