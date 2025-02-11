@@ -6,3 +6,5 @@
 .temp
 __pycache__
 *.json
+shodan_test.py
+dns_records.py

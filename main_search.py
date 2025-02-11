@@ -3,7 +3,6 @@ import json
 import os
 import dotenv
 from datetime import datetime
-from urlhause_query import check_urlhaus
 from urlscan_query import urlscan_submission
 from virustotal_query import check_virustotal
 from abuse_ipdb_check import check_abuseipdb
@@ -11,7 +10,8 @@ from classification import classify_input
 from virustotal_query import search_virus_total
 import aiohttp
 import aiofiles
-from dns_records import fetch_dns_records
+import shodan
+import pdb
 
 dotenv.load_dotenv()
 
@@ -55,11 +55,14 @@ async def fetch_api_result(api_function, api_key, ioc):
         print(f"[ERROR] Unexpected error in {api_function.__name__}: {str(e)}")
         return {"error": f"Unexpected error: {str(e)}"}
 
+
+
 async def make_api_calls(api_keys, ioc, classification):
     """
     Calls appropriate API checks based on the type of IOC (IP, HASH, URL).
     """
     api_requests = []
+    
 
     print("\n[INFO] Collecting endpoints for API calls...")
 
@@ -86,8 +89,30 @@ async def save_json_to_file(data, filename):
     """
     print(f"[INFO] Saving data to {filename}...")
     async with aiofiles.open(filename, "a") as file:
-        await file.write(json.dumps(data, indent=4) + ",\n")
+        await file.write(json.dumps(data, indent=4) + ",")
     print(f"[SUCCESS] File saved: {filename}")
+
+# Asynchronous function to query Shodan with logging
+async def fetch_shodan_data(ioc_type, api, ioc):
+
+    pdb.set_trace()
+    
+    print(f"[INFO] Fetching data for IOC: {ioc} (Type: {ioc_type})")
+    try:
+        if ioc_type == "IP":
+            data = api.host(ioc)
+        elif ioc_type == "URL":
+            data = api.dns.domain_info(ioc)
+        elif ioc_type == "HASH":
+            data = api.search(ioc)
+        else:
+            print(f"[ERROR] Unsupported IOC type: {ioc}")
+            return {"ioc": ioc, "error": "Unsupported IOC type"}
+        print(f"[SUCCESS] Data fetched successfully for {ioc}")
+        return {"ioc": ioc, "data": data}
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch data for {ioc}: {e}")
+        return {"ioc": ioc, "error": str(e)}
 
 async def main():
     print_banner()  # 🔹 Show the banner at the start
@@ -96,7 +121,8 @@ async def main():
         "virustotal": os.getenv("VT_KEY"),
         "abuseipdb": os.getenv("IPDB_KEY"),
         "abusech": os.getenv("ABUSECH_KEY"),
-        "urlscan": os.getenv("URLSCAN_KEY")
+        "urlscan": os.getenv("URLSCAN_KEY"),
+        "shodan" : os.getenv("SHODAN_KEY")
     }
 
     print("\n🔹 Welcome to the Threat Intelligence Lookup Tool 🔍")
@@ -108,14 +134,20 @@ async def main():
 
     api_calls = await make_api_calls(api_keys, ioc, classification)
 
+
     if not api_calls:
         print("[ERROR] No valid API calls generated. Exiting...")
         return
 
     print("\n[INFO] Initiating API calls...")
+    print(api_calls)
     tasks = [fetch_api_result(api["function"], api["api_key"], api["ioc"]) for api in api_calls]
     results = await asyncio.gather(*tasks)
 
+    api_shodan = shodan.Shodan(api_keys["shodan"])
+    shodan_result = await fetch_shodan_data(classification,api_shodan,ioc)
+    results.append(shodan_result)
+    
     filename = f"{ioc}_report.json"
     
     for result in results:

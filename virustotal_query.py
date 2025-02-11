@@ -55,3 +55,4 @@ async def search_virus_total(api_key, ioc):
     except Exception as e:
         print(f"[ERROR] Error searching VirusTotal for {ioc}: {str(e)}")
         return None
+
