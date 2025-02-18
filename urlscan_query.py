@@ -1,6 +1,8 @@
 import asyncio
 import requests
 import time
+import csv
+import json
 
 # Submitting a url for scanning
 
@@ -81,6 +83,22 @@ async def fetch_urlscan_results(api_key, scan_id, wait_time=15):
         result = response.json()
         
         # Extract relevant details
+        if result:
+            print("[DEBUG] Report fetched successfully. Analyzing data...")
+            intelligence = analyze_urlscan_data(result)
+
+            # Check if any intelligence was gathered
+            if intelligence:
+                print("[DEBUG] Intelligence gathered successfully.")
+
+                # Save intelligence to CSV and JSON
+                save_intel_as_csv(intelligence, "intel_report.csv")
+                save_intel_as_json(intelligence, "intel_report.json")
+            else:
+                print("[INFO] No actionable intelligence found.")
+        else:
+            print("[ERROR] No report data available to analyze.")
+
         return result
     
     except requests.exceptions.HTTPError as http_err:
@@ -106,3 +124,66 @@ async def urlscan_submission(api_key,ioc):
     # Step 2: Fetch results after scan completion
     scan_results = await fetch_urlscan_results(api_key, scan_id)
     return scan_results
+
+# Function to parse and analyze the URLScan report
+def analyze_urlscan_data(report_data):
+    print("[DEBUG] Analyzing URLScan data...")
+    
+    intelligence = {}
+
+    # Extract the relevant fields
+    url = report_data.get('url')
+    hostname = report_data.get('domain', {}).get('hostname', '')
+    ip = report_data.get('network', {}).get('ip', '')
+    asn = report_data.get('network', {}).get('asn', '')
+    technologies = report_data.get('technologies', [])
+    http_headers = report_data.get('http', {})
+    resources = report_data.get('resources', [])
+    detections = report_data.get('detection', {})
+
+    # 1. Check for suspicious domains or IPs
+    if 'malicious' in detections:
+        intelligence['malicious_detection'] = True
+        print(f"[DEBUG] Malicious detection found for URL: {url}")
+
+    # 2. Extract technology stack that could indicate suspicious behavior
+    for tech in technologies:
+        if "obfuscation" in tech.lower():  # Example filter
+            intelligence['suspicious_technology'] = tech
+            print(f"[DEBUG] Suspicious technology found: {tech}")
+
+    # 3. Check resources for suspicious URLs
+    for resource in resources:
+        if 'malicious.com' in resource.get('url', ''):  # Example filter
+            intelligence['suspicious_resource'] = resource['url']
+            print(f"[DEBUG] Suspicious resource found: {resource['url']}")
+
+    # 4. Check the ASN for known bad actor ASN
+    if asn == "AS12345":  # Replace with a known malicious ASN
+        intelligence['suspicious_asn'] = asn
+        print(f"[DEBUG] Suspicious ASN detected: {asn}")
+
+    return intelligence
+
+# Function to generate and save intelligence as CSV
+def save_intel_as_csv(intel_data, filename="intel_report.csv"):
+    try:
+        print(f"[DEBUG] Saving intelligence to CSV file: {filename}")
+        keys = intel_data.keys()
+        with open(filename, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(keys)  # Write headers
+            writer.writerow(intel_data.values())  # Write data row
+        print("[DEBUG] CSV report saved successfully.")
+    except Exception as e:
+        print(f"[ERROR] Error saving CSV report: {e}")
+
+# Function to generate and save intelligence as JSON
+def save_intel_as_json(intel_data, filename="intel_report.json"):
+    try:
+        print(f"[DEBUG] Saving intelligence to JSON file: {filename}")
+        with open(filename, 'w') as json_file:
+            json.dump(intel_data, json_file, indent=4)
+        print("[DEBUG] JSON report saved successfully.")
+    except Exception as e:
+        print(f"[ERROR] Error saving JSON report: {e}")
