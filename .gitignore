@@ -1,0 +1,10 @@
+#ignore .env files
+.env
+
+#ignore other common files
+.log
+.temp
+__pycache__
+*.json
+shodan_test.py
+dns_records.py
