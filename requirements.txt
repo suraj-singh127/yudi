@@ -1,0 +1,8 @@
+aiohttp
+aiofiles
+dotenv
+shodan
+requests
+asyncio
+json
+urllib3
