@@ -9,11 +9,9 @@ from virustotal_query import check_virustotal
 from abuse_ipdb_check import check_abuseipdb
 from classification import classify_input
 from virustotal_query import search_virus_total
-import aiohttp
 import aiofiles
 import shodan
 from shodan_check import fetch_shodan_data
-import pdb
 from urllib.parse import urlparse
 
 dotenv.load_dotenv()

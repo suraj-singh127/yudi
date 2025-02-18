@@ -82,4 +82,19 @@ python threat_lookup.py -t domain -i example.com
 ## 📢 Contributing
 Feel free to open issues and pull requests for improvements. Your contributions are welcome! 🚀
 
+## 🔥 Making a Pull Request
+
+🚀 **Contribute to the Threat Intelligence Lookup Tool!**  
+
+Found a bug or have an improvement? Fork the repo, create a new branch, make your changes, and submit a pull request! We appreciate your contributions. 🔍✨  
+
+📌 **Steps:**  
+1. Fork the repository  
+2. Create a new branch (`git checkout -b feature-branch`)  
+3. Commit your changes (`git commit -m "Add feature/fix"`)  
+4. Push to your branch (`git push origin feature-branch`)  
+5. Open a pull request 🚀  
+
+Looking forward to your contributions! 🔥
+
 
