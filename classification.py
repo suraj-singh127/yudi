@@ -2,11 +2,11 @@ import ipaddress
 import re
 
 # classifying user input using into three categories using regex
-def classify_input(user_input):
+def classify_input(user_input,flag):
     # Check for IP address (IPv4 & IPv6)
     try:
         ipaddress.ip_address(user_input)
-        return "IP"
+        return "IP"==flag , user_input
     except ValueError:
         pass
     
@@ -19,8 +19,11 @@ def classify_input(user_input):
         r"|(\[[a-fA-F0-9:]+\]))"  # OR IPv6
         r"(:\d+)?(/.*)?$"  # Optional port & path
     )
-    if url_pattern.match(user_input):
-        return "URL"
+
+    match = url_pattern.match(user_input)
+
+    if match:
+        return "URL"==flag,match.group(2)
 
     # Define hash regex patterns
     hash_patterns = {
@@ -33,6 +36,6 @@ def classify_input(user_input):
     # Check if input matches any hash format
     for hash_type, pattern in hash_patterns.items():
         if re.fullmatch(pattern, user_input):
-            return "HASH"
+            return "HASH"==flag, user_input
 
     return None
