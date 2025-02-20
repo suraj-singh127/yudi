@@ -12,7 +12,6 @@ from virustotal_query import search_virus_total
 import aiofiles
 import shodan
 from shodan_check import fetch_shodan_data
-from urllib.parse import urlparse
 
 dotenv.load_dotenv()
 
@@ -74,7 +73,6 @@ async def make_api_calls(api_keys, ioc, classification):
         print("[INFO] Fetching results from VirusTotal for HASH...")
 
     elif classification == "URL":
-        ioc = parsing_url(ioc).netloc
         api_requests.append({"function": search_virus_total, "api_key": api_keys["virustotal"], "ioc": ioc})
         api_requests.append({"function": urlscan_submission, "api_key": api_keys["urlscan"], "ioc": ioc})
         print("[INFO] Fetching results from VirusTotal, URLHaus, and URLScan.io for URL...")
@@ -118,7 +116,15 @@ async def main():
     # Use command-line arguments
     ioc = args.ioc
     classification = args.type
-    print(f"\n[INFO] Input classified as - {classification}")
+   
+    ioc_check = classify_input(ioc,classification)
+
+    if ioc_check:
+        print("[SUCCESS] IOC entered matched successfully with type")
+        print(f"IOC - {ioc_check[1]}")
+        ioc = ioc_check[1]
+    else:
+        print("[ERROR] IOC Entered invalid ioc")
 
     api_calls = await make_api_calls(api_keys, ioc, classification)
 
@@ -153,10 +159,6 @@ async def main():
     print(f"\n[COMPLETE] All responses saved to {filename}.")
 
     print("\n🚀 Execution completed. Check the report for details.")
-
-def parsing_url(url):
-    parsed_url = urlparse(url=url)
-    return parsed_url
 
 if __name__ == "__main__":
     asyncio.run(main())

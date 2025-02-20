@@ -91,9 +91,6 @@ async def fetch_urlscan_results(api_key, scan_id, wait_time=15):
             if intelligence:
                 print("[DEBUG] Intelligence gathered successfully.")
 
-                # Save intelligence to CSV and JSON
-                save_intel_as_csv(intelligence, "intel_report.csv")
-                save_intel_as_json(intelligence, "intel_report.json")
             else:
                 print("[INFO] No actionable intelligence found.")
         else:

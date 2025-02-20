@@ -1,5 +1,5 @@
 import aiohttp
-import pdb
+
 
 # Submitting a URL for analysis
 async def check_virustotal(api_key, ioc):
@@ -22,7 +22,7 @@ async def check_virustotal(api_key, ioc):
                     print(f"[INFO] Successfully retrieved data for URL: {ioc}")
                     return result
                 else:
-                    print(f"[ERROR] Failed to fetch data for {ioc}. Status Code: {response.status}")
+                    print(f"[ERROR] Failed to fetch data for {ioc}. Status Code: {response.status} ")
                     return None
     except Exception as e:
         print(f"[ERROR] Error querying VirusTotal for {ioc}: {str(e)}")
