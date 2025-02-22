@@ -12,6 +12,7 @@ from virustotal_query import search_virus_total
 import aiofiles
 import shodan
 from shodan_check import fetch_shodan_data
+from get_key import extract_platform_keys
 
 dotenv.load_dotenv()
 
@@ -84,11 +85,11 @@ async def main():
     print_banner()  # 🔹 Show the banner at the start
 
     api_keys = {
-        "virustotal": os.getenv("VT_KEY"),
-        "abuseipdb": os.getenv("IPDB_KEY"),
+        "virustotal": extract_platform_keys("virustotal")["api_key"],
+        "abuseipdb": extract_platform_keys("abuseipdb")["api_key"],
         "abusech": os.getenv("ABUSECH_KEY"),
-        "urlscan": os.getenv("URLSCAN_KEY"),
-        "shodan" : os.getenv("SHODAN_KEY")
+        "urlscan": extract_platform_keys("urlscan")["api_key"],
+        "shodan" : extract_platform_keys("shodan")["api_key"]
     }
 
     print("\n🔹 Welcome to the Threat Intelligence Lookup Tool 🔍")
