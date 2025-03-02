@@ -153,14 +153,13 @@ async def main():
     results["shodan"] = shodan_result  # Add Shodan response separately
 
     # Save results in one single structured JSON file
-    filename = f"{classification}_report.json"
+    filename = "report.json"
     async with aiofiles.open(filename, "w") as file:  # 'w' ensures the file is overwritten, avoiding duplicates
         await file.write(json.dumps(results, indent=4))
 
     print(f"\n[COMPLETE] All responses saved to {filename}.")
 
     print("\n🚀 Execution completed. Check the report for details.")
-
-if __name__ == "__main__":
+    
+if __name__=="__main__":
     asyncio.run(main())
-
