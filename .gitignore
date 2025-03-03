@@ -6,5 +6,20 @@
 .temp
 __pycache__
 *.json
-shodan_test.py
-dns_records.py
+
+# Node modules
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.production.local
+
+# Editor & system files
+.vscode/
+.idea/
+.DS_Store

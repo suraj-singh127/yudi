@@ -1,5 +1,4 @@
 import aiohttp
-import pdb
 
 # Function takes in api key and ioc and returns the response
 

@@ -1,4 +1,3 @@
-
 # YUDI - Threat Intelligence Lookup Tool
 
 **YUDI** is an open-source tool designed to help cybersecurity professionals and researchers investigate threat intelligence data from various sources and feeds. The tool focuses on querying Indicators of Compromise (IOCs), filtering data, and drawing relations between different types of IOCs.
@@ -61,7 +60,7 @@ python threat_lookup.py -t domain -i example.com
 ### **Output**  
 - The script collects data from multiple threat intelligence sources like **VirusTotal, AbuseIPDB, URLScan, and Shodan**.
 - Results are saved in a structured JSON file based on the IOC type.
-- Example output file: `ip_report.json`  
+- Example output file: `report.json`  
 
 ```json
 {
@@ -72,12 +71,56 @@ python threat_lookup.py -t domain -i example.com
 }
 ```
 
-## 🛠 Requirements
+## 🛠 Backend Requirements
 - Python 3.7+
 - Install dependencies using:
   ```bash
   pip install -r requirements.txt
   ```
+
+## 📡 Serving `report.json` via Quart
+You can serve the `report.json` file using **FastAPI** to expose the threat intelligence data through an API.
+
+### **Running the FastAPI Server**
+Start the FastAPI server with:
+```bash
+python app.py
+```
+
+### **Access the Report**
+Once the server is running, access the report via:
+```bash
+curl http://127.0.0.1:8000/get_report
+```
+This will return the contents of `report.json`.
+
+## 🌐 Frontend Installation and Requirements
+The frontend is built using **Vite + React + TypeScript** to provide an interactive dashboard for visualizing threat intelligence data.
+
+### **Frontend Requirements**
+- Node.js 16+
+- npm or yarn
+
+### **Installing the Frontend**
+Navigate to the `frontend` directory and install dependencies:
+```bash
+cd yudi-frontend
+npm install  # or yarn install
+```
+
+### **Running the Frontend**
+Start the development server:
+```bash
+npm run dev  # or yarn dev
+```
+This will start the Vite development server. Open **http://localhost:5173** in your browser.
+
+### **Connecting the Frontend to the Backend**
+To link the frontend with the backend, update the API URL in `src/config.ts`:
+```ts
+export const API_BASE_URL = "http://0.0.0.0:5000";
+```
+Now, the frontend will fetch IOC data from the backend's API.
 
 ## 📢 Contributing
 Feel free to open issues and pull requests for improvements. Your contributions are welcome! 🚀
@@ -96,5 +139,4 @@ Found a bug or have an improvement? Fork the repo, create a new branch, make you
 5. Open a pull request 🚀  
 
 Looking forward to your contributions! 🔥
-
 
