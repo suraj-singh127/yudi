@@ -71,7 +71,7 @@ python threat_lookup.py -t domain -i example.com
 }
 ```
 
-## 🛠 Requirements
+## 🛠 Backend Requirements
 - Python 3.7+
 - Install dependencies using:
   ```bash
@@ -93,6 +93,34 @@ Once the server is running, access the report via:
 curl http://127.0.0.1:8000/get_report
 ```
 This will return the contents of `report.json`.
+
+## 🌐 Frontend Installation and Requirements
+The frontend is built using **Vite + React + TypeScript** to provide an interactive dashboard for visualizing threat intelligence data.
+
+### **Frontend Requirements**
+- Node.js 16+
+- npm or yarn
+
+### **Installing the Frontend**
+Navigate to the `frontend` directory and install dependencies:
+```bash
+cd yudi-frontend
+npm install  # or yarn install
+```
+
+### **Running the Frontend**
+Start the development server:
+```bash
+npm run dev  # or yarn dev
+```
+This will start the Vite development server. Open **http://localhost:5173** in your browser.
+
+### **Connecting the Frontend to the Backend**
+To link the frontend with the backend, update the API URL in `src/config.ts`:
+```ts
+export const API_BASE_URL = "http://0.0.0.0:5000";
+```
+Now, the frontend will fetch IOC data from the backend's API.
 
 ## 📢 Contributing
 Feel free to open issues and pull requests for improvements. Your contributions are welcome! 🚀
