@@ -1,12 +1,12 @@
 from quart import Quart, jsonify,request
 import json
 from quart_cors import cors
-import aiohttp
 from scraper import fetch_content
 from extractor import extract_content
 
 
 app = Quart(__name__)
+
 
 async def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
