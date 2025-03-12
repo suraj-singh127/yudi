@@ -1,18 +1,20 @@
-# 1️⃣ Use Node.js as the base image
-FROM node:18
+# Use Node.js as the base image
+FROM node:20
 
-# 2️⃣ Set the working directory inside the container
+# Set the working directory inside the container
 WORKDIR /app
 
-# 3️⃣ Copy package.json and install dependencies
-COPY package.json package-lock.json ./
+# Copy package.json and package-lock.json first
+COPY package.json package-lock.json /app/
+
+# Install dependencies
 RUN npm install
 
-# 4️⃣ Copy the entire frontend source code
-COPY . .
+# Copy the rest of the application files
+COPY . /app
 
-# 5️⃣ Expose Vite's development server port (5173)
+# Expose the frontend development port
 EXPOSE 5173
 
-# 6️⃣ Start the Vite development server
+# Start the frontend application
 CMD ["npm", "run", "dev", "--", "--host"]

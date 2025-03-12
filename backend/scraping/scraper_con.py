@@ -3,13 +3,18 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from concurrent.futures import ThreadPoolExecutor
-import hashlib
 import os
 from typing import List
 import time
+import re
+import json
+from typing import Dict, List
+
+ES_INDEX = "iocs"
 
 # Initialize WebDriver options
 def get_webdriver():
+    print("Initializing WebDriver...")
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Run in headless mode
     chrome_options.add_argument("--no-sandbox")
@@ -17,104 +22,162 @@ def get_webdriver():
     
     # Use ChromeDriverManager to install and manage ChromeDriver automatically
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    print("WebDriver initialized.")
     return driver
 
-# Function to fetch content from URL
 def fetch_url(url):
     try:
+        print(f"Fetching URL: {url}")
         driver = get_webdriver()
         driver.get(url)
         time.sleep(2)  # Wait for page to load
         page_source = driver.page_source
         driver.quit()
+        print(f"Successfully fetched {url}")
         return page_source
     except Exception as e:
         print(f"Error fetching {url}: {e}")
         return None
 
-# Function to scrape IOCs from a list of URLs
-def scrape_iocs_from_urls(urls: List[str]):
-    iocs = []
+def scrape_iocs_from_urls(urls: List[str], es):
+    """Scrapes IOCs from a list of URLs using multiple WebDriver instances."""
+    print("Starting IOC scraping from URLs...")
+    url_ioc_map = {}
+
     with ThreadPoolExecutor(max_workers=10) as executor:
-        results = list(executor.map(fetch_url, urls))
-    
-    for response in results:
+        print(f"Submitting {len(urls)} URLs to fetch concurrently...")
+        results = {url: executor.submit(fetch_url, url) for url in urls}
+
+    for url, future in results.items():
+        print(f"Processing result for {url}...")
+        response = future.result()
         if response:
-            iocs.extend(extract_iocs(response))
-    
-    classified_iocs = classify_iocs(iocs)
-    return classified_iocs
+            print(f"Extracting IOCs from {url}...")
+            iocs = extract_iocs(response)
+            url_ioc_map[url] = iocs
+            index_to_elasticsearch(url, iocs, es)
+            print(f"Extracted IOCs from {url}")
+        else:
+            print(f"No data returned for {url}")
+            
+    print("IOC scraping complete.")
 
-# Function to extract IOCs (Indicators of Compromise) from the page source
-def extract_iocs(data: str):
-    iocs = []
-    for line in data.splitlines():
-        line = line.strip()
-        if line:
-            iocs.append(line)
-    return iocs
+    return url_ioc_map
 
-# Refined function to classify IOCs (Indicators of Compromise)
-def classify_iocs(iocs: List[str]):
-    classified = {"hashes": [], "domains": [], "urls": [], "ttps": []}
-    
-    # Regex patterns for more accurate classification
-    url_pattern = re.compile(r"^(https?://)?([a-zA-Z0-9-]+\.)+[a-zA-Z0-9-]+(:[0-9]+)?(/.*)?$")
-    domain_pattern = re.compile(r"([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}$")  # Basic domain regex
-    hash_patterns = {
-        "MD5": re.compile(r"^[a-fA-F0-9]{32}$"),
-        "SHA1": re.compile(r"^[a-fA-F0-9]{40}$"),
-        "SHA256": re.compile(r"^[a-fA-F0-9]{64}$")
+def extract_iocs(page_source: str) -> Dict[str, List]:
+    """Extracts IOCs from the entire page source at once."""
+    print("Extracting IOCs using regex patterns...")
+    IOC_PATTERNS = {
+        "urls": re.compile(r"https?:\/\/[^\s\"\'<>]+"),
+        "domains": re.compile(r"\b(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}\b"),
+        "ipv4": re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b"),
+        "ipv6": re.compile(r"\b(?:[a-fA-F0-9]{1,4}:){2,7}[a-fA-F0-9]{1,4}\b"),
+        "hashes": {
+            "MD5": re.compile(r"\b[a-fA-F0-9]{32}\b"),
+            "SHA1": re.compile(r"\b[a-fA-F0-9]{40}\b"),
+            "SHA256": re.compile(r"\b[a-fA-F0-9]{64}\b"),
+            "SHA384": re.compile(r"\b[a-fA-F0-9]{96}\b"),
+            "SHA512": re.compile(r"\b[a-fA-F0-9]{128}\b"),
+            "SSDEEP": re.compile(r"\b\d{1,4}:[a-zA-Z0-9/+]{32,64}:[a-zA-Z0-9/+]{32,64}\b")  # Fuzzy hash
+        }
     }
 
-    for ioc in iocs:
-        ioc = ioc.strip()
-        
-        # Classify URL
-        if url_pattern.match(ioc):
-            classified["urls"].append(ioc)
-        
-        # Classify Domain
-        elif domain_pattern.match(ioc):
-            # Avoid IP addresses and add more refined domain matching
-            if not re.match(r"^\d+\.\d+\.\d+\.\d+$", ioc):
-                classified["domains"].append(ioc)
-        
-        # Classify Hash (MD5, SHA1, SHA256)
-        elif hash_patterns["MD5"].match(ioc):
-            classified["hashes"].append(ioc)
-        elif hash_patterns["SHA1"].match(ioc):
-            classified["hashes"].append(ioc)
-        elif hash_patterns["SHA256"].match(ioc):
-            classified["hashes"].append(ioc)
-        
-        # If it's a potential TTP (any other unclassified IOC)
-        else:
-            classified["ttps"].append(ioc)
-    
-    return classified
+    extracted_iocs = {
+        "urls": list(set(IOC_PATTERNS["urls"].findall(page_source))),
+        "domains": list(set(IOC_PATTERNS["domains"].findall(page_source))),
+        "ips": [],
+        "hashes": []
+    }
 
+    # Extract IPs and remove false positives (filtering private/local IPs)
+    extracted_ips = set(IOC_PATTERNS["ipv4"].findall(page_source)) | set(IOC_PATTERNS["ipv6"].findall(page_source))
+    extracted_iocs["ips"] = [{"value": ip, "type": "IPv4" if "." in ip else "IPv6"} for ip in extracted_ips
+                             if not is_private_ip(ip)]
+
+    # Extract hashes and classify them
+    for hash_type, pattern in IOC_PATTERNS["hashes"].items():
+        for match in pattern.findall(page_source):
+            extracted_iocs["hashes"].append({"value": match, "type": hash_type})
+
+    print(f"Extracted {len(extracted_iocs['urls'])} URLs, {len(extracted_iocs['domains'])} domains, "
+          f"{len(extracted_iocs['ips'])} IPs, {len(extracted_iocs['hashes'])} hashes.")
+    return extracted_iocs
+
+def is_private_ip(ip: str) -> bool:
+    """Checks if an IP is private (e.g., local or reserved ranges)."""
+    private_ranges = [
+        re.compile(r"^10\..*"),          # 10.0.0.0/8
+        re.compile(r"^192\.168\..*"),    # 192.168.0.0/16
+        re.compile(r"^172\.(1[6-9]|2\d|3[01])\..*"),  # 172.16.0.0/12
+        re.compile(r"^127\..*"),         # 127.0.0.0/8 (loopback)
+        re.compile(r"^169\.254\..*"),    # 169.254.0.0/16 (APIPA)
+        re.compile(r"^::1$"),            # IPv6 loopback
+        re.compile(r"^fc..*|^fd..*")     # IPv6 unique local addresses
+    ]
+    
+    return any(pattern.match(ip) for pattern in private_ranges)
+
+def dump_iocs_to_json(url_ioc_map: Dict[str, Dict[str, List]], filename: str = "classified_iocs.json"):
+    """Dumps the classified IOCs into a JSON file in the desired format."""
+    try:
+        print(f"Dumping IOCs to JSON file: {filename}...")
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(url_ioc_map, f, indent=4)
+        print(f"Classified IOCs saved to {filename}")
+    except Exception as e:
+        print(f"Error saving IOCs to JSON: {e}")
 
 # Function to read URLs from the given text file
 def read_urls_from_file(filename: str):
-    if not os.path.exists(filename):
-        print("File not found.")
-        return []
+    print(filename)
+    #if not os.path.exists(filename):
+    #   print("File not found.")
+    #    return []
     
     with open(filename, "r") as file:
+        print("Opened file")
         urls = [line.strip() for line in file.readlines() if line.strip()]
+    print(f"Read {len(urls)} URLs from file.")
     return urls
 
 # Main function to handle the scraping and processing of IOCs
-def main():
-    filename = "open_source_threat_feeds.txt"
-    urls = read_urls_from_file(filename)
+# Function accepts the scraping urls and then store it in elastic search index
+def scrape_job(urls, es):
+
     if urls:
         print("Scraping IOCs from URLs...")
-        classified_iocs = scrape_iocs_from_urls(urls)
-        print("Classified IOCs:", classified_iocs)
+        classified_iocs = scrape_iocs_from_urls(urls,es)
+        #dump_iocs_to_json(classified_iocs, "scraped.json")
+        print("Scraping done... IOC's dumped to scraped.json as well as indexed in Elastic Search file")
+        return classified_iocs
     else:
-        print("No valid URLs found.")
+        print("No URLs found to scrape.")
+        return {"error": "no results returned, some error encountered."}
+    
+def scrape_single_source(url,es):
+    if url:
+        print("Scraping IOC from URL.....")
+        classified_ioc = extract_iocs(fetch_url(url))
+        print(classified_ioc)
+        return classified_ioc
+    else:
+        print("No URLs found to scrape.")
+        return {"error": "no results returned, some error encountered."}
+        
 
-if __name__ == "__main__":
-    main()
+# indexing the scraped IOCs to elasticsearch
+def index_to_elasticsearch(url, ioc_data,es):
+    """Indexes IOCs in real time to Elasticsearch."""
+    if not es.ping():
+        print("Elasticsearch connection failed!")
+        return
+    
+    doc = {
+        "url": url,
+        "iocs": ioc_data,
+        "timestamp": "now"
+    }
+    
+    # Index document using URL as ID (to prevent duplicates)
+    response = es.index(index=ES_INDEX, id=url, document=doc)
+    print(f"Indexed IOCs from {url} → {response['result']}")

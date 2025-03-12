@@ -1,0 +1,31 @@
+/backend
+elastic 
+--> elastic_io --> for performing crud operations on elastic search
+
+enrichment
+--> abuse_ipdb_check --> for searching IP address related info
+--> classification --> classification of IOC into hash, url, ip and iptype (redundant)
+--> shodan_check --> for checking IOC on shodan
+--> threat_lookup --> for enriching the iocs from relevant third parties (needs to modified)
+--> urlscan_insights --> for insights from URLScan.io
+--> urlscan_query --> for submitting and fetching reports from URLScan.io
+--> virustotal_query --> for searching virus total
+
+scraping
+--> scraped.json --> result from scraped urls (has to be removed)
+--> scraper_con --> for scraping feeds
+
+
+testing_scripts
+--> elasticsearch_test.py --> checking ES connectivity (redundant but useful for troubleshooting)
+--> connectivity_test.py --> services up testing (doing)
+--> es_test.py --> test performing crud operations (done)
+
+api_keys.json --> containing third party sources api keys
+requirements.txt --> for installing dependencies
+
+Dockerfile --> Dockerfile for backend app
+
+app.py --> main file
+
+

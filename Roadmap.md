@@ -18,7 +18,7 @@ Organizations need an **open-source tool** to **investigate threat intelligence 
 - Enrich data using external APIs (WHOIS, PassiveDNS).
 - Store IOCs in a structured format.
 
-### 3. Search & Filtering
+### 3. Search & Filteringimport aiohttp
 - Implement **Elasticsearch** for fast IOC queries.
 - Allow filtering based on IOC type, severity, source, and date.
 

@@ -1,19 +1,19 @@
 import { useState } from "react";
-import axios from "axios";
-import { Box, Button, Input, Textarea, Stack, Heading, Text } from "@chakra-ui/react";
+import apiClient from "../api/apiClient";
 
 export default function IOCInputPage() {
   const [iocData, setIocData] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event) => {
     if (event.target.files && event.target.files.length > 0) {
       setFile(event.target.files[0]);
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setLoading(true);
     const formData = new FormData();
     
@@ -24,8 +24,8 @@ export default function IOCInputPage() {
     }
 
     try {
-      await axios.post("/api/ioc/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      await apiClient.post("/api/manual_input", formData, {
+        headers: { "Content-Type": "application/json" },
       });
       alert("Upload successful");
     } catch (error) {
@@ -35,19 +35,15 @@ export default function IOCInputPage() {
   };
 
   return (
-    <Box display="flex" alignItems="center" justifyContent="center" minH="100vh" bg="gray.900" color="white" p={4}>
-      <Box bg="gray.800" p={6} borderRadius="lg" boxShadow="lg" maxW="md" w="full">
-        <Stack spacing={4}>
-          <Heading size="md" textAlign="center">Upload IOCs</Heading>
-          <Text fontSize="sm" color="gray.400" textAlign="center">Supports JSON, CSV, STIX, TXT</Text>
-          <Input type="file" accept=".json,.csv,.txt,.stix" onChange={handleFileChange} bg="gray.700" borderColor="gray.600" />
-          <Text fontSize="sm" color="gray.400" textAlign="center">Or manually enter IOCs:</Text>
-          <Textarea rows={4} value={iocData} onChange={(e) => setIocData(e.target.value)} placeholder="Paste IOCs..." bg="gray.700" borderColor="gray.600" />
-          <Button colorScheme="blue" onClick={handleSubmit} isLoading={loading} w="full">
-            Submit
-          </Button>
-        </Stack>
-      </Box>
-    </Box>
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+      <form onSubmit={handleSubmit} style={{ textAlign: "center", padding: "20px", border: "1px solid #ccc", borderRadius: "5px", background: "#f9f9f9" }}>
+        <h3>Upload IOCs</h3>
+        <p>Supports JSON, CSV, STIX, TXT</p>
+        <input type="file" accept=".json,.csv,.txt,.stix" onChange={handleFileChange} /><br /><br />
+        <p>Or manually enter IOCs:</p>
+        <textarea value={iocData} onChange={(e) => setIocData(e.target.value)} placeholder="Paste IOCs..."></textarea><br /><br />
+        <button type="submit" disabled={loading}>{loading ? "Uploading..." : "Submit"}</button>
+      </form>
+    </div>
   );
 }
