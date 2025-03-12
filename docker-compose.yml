@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: threat-intel-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ./backend:/app
+    command: ["python","app.py","--host","0.0.0.0"]
+
+  frontend:
+    build: ./yudi-frontend
+    container_name: threat-intel-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://backend:5000
+    depends_on:
+      - backend
+    volumes:
+      - ./yudi-frontend:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host"]
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
+    container_name: es01
+    environment:
+      - discovery.type=single-node
+      - xpack.ml.use_auto_machine_memory_percent=true
+      - xpack.security.enabled:false
+      - xpack.security.enrollment.enabled:false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    deploy:
+      resources:
+        limits:
+          memory: 2GB
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    cap_add:
+      - IPC_LOCK
+
+volumes:
+  esdata:

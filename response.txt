@@ -1,0 +1,15 @@
+[
+  {
+    "dataset.size": "337kb",
+    "docs.count": "1",
+    "docs.deleted": "0",
+    "health": "yellow",
+    "index": "iocs",
+    "pri": "1",
+    "pri.store.size": "337kb",
+    "rep": "1",
+    "status": "open",
+    "store.size": "337kb",
+    "uuid": "GAXgYWmTSTufOAgkw0gTcA"
+  }
+]
