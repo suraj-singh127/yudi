@@ -9,3 +9,4 @@ export const fetchConsolidatedData = async () => {
     throw error;
   }
 };
+
