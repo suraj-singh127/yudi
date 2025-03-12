@@ -1,11 +1,3 @@
-<<<<<<< Updated upstream
-from quart import Quart, jsonify
-import json
-from quart_cors import cors
-
-app = Quart(__name__)
-app = cors(app,allow_origin="*")
-=======
 from quart import Quart, jsonify,request
 import json
 from quart_cors import cors
@@ -49,7 +41,6 @@ async def add_cors_headers(response):
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     return response
->>>>>>> Stashed changes
 
 JSON_FILE_PATH = "report.json"  # Path to the JSON file
 
@@ -65,9 +56,6 @@ async def get_ioc():
     except json.JSONDecodeError:
         return jsonify({"error": "Invalid JSON format"}), 500
 
-<<<<<<< Updated upstream
-if __name__ == "__main__":
-=======
 @app.route('/api/manual_input' , methods=['POST'])
 async def testing_post():
     try:
@@ -158,5 +146,4 @@ async def startup():
 
 if __name__ == "__main__":
     #es_test.testing_elasticsearch()
->>>>>>> Stashed changes
     app.run(host="0.0.0.0",port=5000,debug=True)
