@@ -1,0 +1,1 @@
+https://raw.githubusercontent.com/pan-unit42/iocs/refs/heads/master/CAPTCHA_Protected_Phishing/IOCs_August2021

@@ -1,0 +1,24 @@
+docker pull docker.elastic.co/elasticsearch/elasticsearch-wolfi:8.17.3
+
+fetch the image id of the above image - [image_id]
+
+sysctl -w vm.max_map_count=262144 - for troubleshooting due to max virtual memory area 65530 is too low we need to increase its max limit
+
+docker run --name es3 -p 9200:9200 -it -m 2GB -e "xpack.ml.use_auto_machine_memory_percent=true" [image_id] #insert the image id fetched above
+
+Now the container runs and throws out an enrollment token, default password and CA CERT 256 fingerprint
+
+Now these things can also be generated once the elasticsearch container starts running 
+
+docker cp es01:/usr/share/elasticsearch/config/certs/http_ca.crt etc/share/elasticsearch/config/certs # for copying the ca cert from the running container 
+
+Now you can check connectivity to the elasticsearch container by using the ca cert 
+
+Fetching the container id using the container name used int the run command
+
+docker ps --filter "name=es3" --format "{{.ID}}" # gives out the container id can use this container id to fetch the logs of running elastic search container
+and then grep the elastic search password and enrollment token
+
+docker exec -it es3 /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic - for resetting the password
+
+Note down the new password and copy it to the .env file in your python app
