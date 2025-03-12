@@ -13,12 +13,7 @@ node_modules/
 # Build output
 dist/
 
-<<<<<<< Updated upstream
-# Environment variables
-.env
-=======
 # Environment variable
->>>>>>> Stashed changes
 .env.local
 .env.development.local
 .env.production.local
@@ -26,10 +21,6 @@ dist/
 # Editor & system files
 .vscode/
 .idea/
-<<<<<<< Updated upstream
-.DS_Store
-=======
 .DS_Store
 
 elasticsearch.txt
->>>>>>> Stashed changes
